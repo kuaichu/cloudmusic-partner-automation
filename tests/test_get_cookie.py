@@ -76,6 +76,15 @@ class CookieConfigTests(unittest.TestCase):
 
 
 class CookieNetworkTests(unittest.TestCase):
+    def test_response_cookie_combines_header_and_cookie_jar(self):
+        response = FakeResponse()
+        response.headers["Set-Cookie"] = "MUSIC_U=header-value; Path=/; HttpOnly"
+        response.cookies.set("__csrf", "jar-value")
+
+        combined = gc.cookie_from_response(response)
+
+        self.assertEqual(combined, "MUSIC_U=header-value; __csrf=jar-value")
+
     def test_request_helper_sets_timeout_and_does_not_retry_post(self):
         session = FakeSession([requests.Timeout("POST https://example.invalid?key=secret")])
         with self.assertRaises(gc.CookieRequestError):

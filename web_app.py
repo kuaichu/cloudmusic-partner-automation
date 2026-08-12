@@ -43,14 +43,6 @@ def read_config(config_path: Path) -> dict:
         return json.load(f)
 
 
-def mask_text(value: str, head: int = 4, tail: int = 4) -> str:
-    if not value:
-        return ""
-    if len(value) <= head + tail:
-        return "*" * len(value)
-    return f"{value[:head]}...{value[-tail:]}"
-
-
 def tail_text(path: str | Path, max_lines: int = 160) -> str:
     try:
         with open(path, "r", encoding="utf-8") as f:

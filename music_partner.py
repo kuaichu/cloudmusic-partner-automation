@@ -33,7 +33,6 @@ from netease_utils import (
     random_key,
     redact_sensitive,
     rsa_encrypt,
-    to_16,
 )
 
 # ---------------------------------------------------------------------------
@@ -661,9 +660,6 @@ class MusicPartner:
             return TaskStatus.UNKNOWN
         log.warning("拓展评分未成功 [account=%s code=%s message=%s]", self.account_id, code, _safe_message(result))
         return TaskStatus.FAILED
-
-    # 每日积分上限 (基础 8 + 拓展 15 = 23)
-    DAILY_CAP = 23
 
     def _verify_completion(self, basic_target: int, extend_target: int) -> bool:
         """只读复查服务端状态，避免把“提交过”误报成“任务已完成”。"""

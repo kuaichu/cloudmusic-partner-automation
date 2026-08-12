@@ -35,14 +35,11 @@ from netease_utils import (
     random_key,
     redact_sensitive,
     rsa_encrypt,
-    to_16,
 )
 
 # ---------------------------------------------------------------------------
 # 常量
 # ---------------------------------------------------------------------------
-LOGIN_PHONE = "https://music.163.com/weapi/login/cellphone"
-LOGIN_EMAIL = "https://music.163.com/weapi/login"
 QR_KEY_URL = "https://music.163.com/api/login/qrcode/unikey"
 QR_CHECK_URL = "https://music.163.com/api/login/qrcode/client/login"
 QR_CHECK_WEAPI_URL = "https://music.163.com/weapi/login/qrcode/client/login"
@@ -146,6 +143,13 @@ def cookie_from_set_cookie_header(header: str) -> str:
     except Exception:
         return ""
     return "; ".join(f"{key}={morsel.value}" for key, morsel in cookie.items())
+
+
+def cookie_from_response(response: requests.Response) -> str:
+    """合并响应头和响应 Cookie 容器中的 Cookie。"""
+    header_cookie = cookie_from_set_cookie_header(response.headers.get("Set-Cookie", ""))
+    response_cookie = "; ".join(f"{key}={value}" for key, value in response.cookies.items())
+    return "; ".join(value for value in (header_cookie, response_cookie) if value)
 
 
 def validate_cookie(cookie: str) -> bool:
@@ -373,9 +377,7 @@ def login_qrcode() -> tuple[str, dict] | None:
                 "二维码状态",
                 headers={"User-Agent": UA, "Referer": "https://music.163.com/"},
             )
-            header_cookie = cookie_from_set_cookie_header(response.headers.get("Set-Cookie", ""))
-            response_cookie = "; ".join(f"{k}={v}" for k, v in response.cookies.items())
-            return payload, "; ".join(x for x in [header_cookie, response_cookie] if x)
+            return payload, cookie_from_response(response)
 
         def check_qr_status_weapi() -> tuple[dict, str]:
             payload = encrypt_payload({"key": unikey, "type": 3})
@@ -392,9 +394,7 @@ def login_qrcode() -> tuple[str, dict] | None:
                     "Content-Type": "application/x-www-form-urlencoded",
                 },
             )
-            header_cookie = cookie_from_set_cookie_header(response.headers.get("Set-Cookie", ""))
-            response_cookie = "; ".join(f"{k}={v}" for k, v in response.cookies.items())
-            return response_data, "; ".join(x for x in [header_cookie, response_cookie] if x)
+            return response_data, cookie_from_response(response)
 
         while time.time() - start_time < 300:
             result = None
