@@ -1,0 +1,45 @@
+# Secrets and runtime state
+copartner_ck.json
+music_partner_state.json
+music_partner_state.json.lock
+qrcode.png
+.qrcode.*.png
+
+# Logs and captures
+*.log
+*.har
+
+# Python caches
+__pycache__/
+**/__pycache__/
+**pycache**/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Build and package output
+build/
+dist/
+*.egg-info/
+
+# Local helper/editor configuration
+.codex/
+.claude/
+.idea/
+.vscode/
+.env
+.env.*
+
+# Operating system metadata
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+~$*

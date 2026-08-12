@@ -1,0 +1,5 @@
+pycryptodome
+requests
+qrcode
+Pillow
+browser-cookie3

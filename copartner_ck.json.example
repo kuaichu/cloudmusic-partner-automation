@@ -1,0 +1,22 @@
+{
+  "_comment": "将此文件复制为 copartner_ck.json 并填入你的 cookie",
+  "_cookie_help": [
+    "1. 用浏览器打开 https://music.163.com 并登录",
+    "2. 按 F12 打开开发者工具 → Application → Cookies",
+    "3. 找到 music.163.com 域名下的所有 cookie",
+    "4. 将所有 cookie 拼接为 'key1=value1; key2=value2; ...' 格式",
+    "5. 确保包含 __csrf 字段",
+    "6. 也可以从浏览器 Network 面板任意请求的 Request Headers 中复制 Cookie 值"
+  ],
+  "MUSIC_COPARTNER": [
+    {
+      "cookie": "os=ios; osver=15.1; appver=8.8.01; MUSIC_U=xxx; __csrf=xxx; ...",
+      "delay": {
+        "_comment": "单位为秒；每次会在区间内随机等待",
+        "basic": [15, 20],
+        "interact": [1, 3],
+        "extra": [15, 20]
+      }
+    }
+  ]
+}
