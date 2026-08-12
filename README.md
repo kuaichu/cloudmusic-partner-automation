@@ -122,6 +122,7 @@ python -m unittest discover -s tests -v
 ```text
 music_partner.py             主程序
 get_cookie.py                Cookie 获取工具
+netease_utils.py             加密与日志脱敏公共模块
 web_app.py                   可选的本地控制台
 setup_task.ps1               Windows 计划任务安装脚本
 copartner_ck.json.example    配置示例

@@ -12,14 +12,10 @@ import os
 import sys
 import json
 import time
-import base64
-import codecs
 import hashlib
 import random
-import string
 import logging
 import argparse
-import re
 import tempfile
 import threading
 from contextlib import contextmanager
@@ -28,7 +24,17 @@ from enum import Enum
 from logging.handlers import RotatingFileHandler
 
 import requests
-from Crypto.Cipher import AES
+from netease_utils import (
+    IV,
+    MODULUS,
+    NONCE,
+    PUBKEY,
+    aes_encrypt,
+    random_key,
+    redact_sensitive,
+    rsa_encrypt,
+    to_16,
+)
 
 # ---------------------------------------------------------------------------
 # 日志配置
@@ -83,28 +89,6 @@ class UnknownResponse(PartnerError):
 _STATE_THREAD_LOCK = threading.RLock()
 
 
-def redact_sensitive(value: object) -> str:
-    """清除错误文本中的 URL、Cookie 和认证参数。"""
-    text = str(value)
-    text = re.sub(r"https?://[^\s'\"<>]+", "<url>", text, flags=re.IGNORECASE)
-    text = re.sub(
-        r"(?i)(\b(?:cookie|set-cookie)\s*[:=]\s*)[^\r\n]+",
-        r"\1<redacted>",
-        text,
-    )
-    sensitive_keys = r"cookie|set-cookie|csrf_token|__csrf|music_u|music_a|codekey|unikey|\bkey"
-    quoted_pattern = re.compile(
-        rf"(?i)(['\"]?(?:{sensitive_keys})['\"]?\s*[:=]\s*)(['\"])(.*?)(\2)"
-    )
-    text = quoted_pattern.sub(lambda match: f"{match.group(1)}{match.group(2)}<redacted>{match.group(2)}", text)
-    text = re.sub(
-        rf"(?i)(['\"]?(?:{sensitive_keys})['\"]?\s*[:=]\s*)[^\s,;}}&'\"]+",
-        r"\1<redacted>",
-        text,
-    )
-    return text[:500]
-
-
 def _safe_message(data: dict) -> str:
     return redact_sensitive(data.get("message") or data.get("msg") or "未知错误")[:160]
 
@@ -140,49 +124,6 @@ def _state_file_lock():
                     fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
             finally:
                 lock_file.close()
-
-# ---------------------------------------------------------------------------
-# 加密函数 (与网易云音乐前端的加密方式一致)
-# ---------------------------------------------------------------------------
-
-MODULUS = (
-    "00e0b509f6259df8642dbc35662901477df22677ec152b5ff68ace615bb7b725152b3ab17a876aea8a5aa76d2e417629"
-    "ec4ee341f56135fccf695280104e0312ecbda92557c93870114af6c9d05c4f7f0c3685b7a46bee255932575cce10b424"
-    "d813cfe4875d3e82047b97ddef52741d546b8e289dc6935b3ece0462db0a22b8e7"
-)
-PUBKEY = "010001"
-NONCE = "0CoJUm6Qyw8W8jud"
-IV = "0102030405060708"
-
-
-def to_16(key: str) -> bytes:
-    """将 key 补齐到 16 的倍数（PKCS7 风格的空字符填充）"""
-    while len(key) % 16 != 0:
-        key += "\0"
-    return key.encode()
-
-
-def aes_encrypt(text: str, key: str, iv: str) -> str:
-    """AES-128-CBC 加密，返回 base64 字符串"""
-    bs = AES.block_size
-    pad = lambda s: s + (bs - len(s) % bs) * chr(bs - len(s) % bs)
-    cipher = AES.new(to_16(key), AES.MODE_CBC, to_16(iv))
-    encrypted = cipher.encrypt(pad(text).encode())
-    return base64.encodebytes(encrypted).decode().replace("\n", "")
-
-
-def rsa_encrypt(text: str, pubkey: str, modulus: str) -> str:
-    """网易云音乐的混淆加密（不是标准 RSA）"""
-    text = text[::-1]
-    rs = int(codecs.encode(text.encode(), "hex_codec"), 16) ** int(pubkey, 16) % int(modulus, 16)
-    return format(rs, "x").zfill(256)
-
-
-def random_key(length: int = 16) -> str:
-    """生成随机字符串，替代 execjs 中的 get_i"""
-    chars = string.ascii_letters + string.digits
-    return "".join(random.choice(chars) for _ in range(length))
-
 
 # ---------------------------------------------------------------------------
 # 核心逻辑
@@ -720,38 +661,6 @@ class MusicPartner:
             return TaskStatus.UNKNOWN
         log.warning("拓展评分未成功 [account=%s code=%s message=%s]", self.account_id, code, _safe_message(result))
         return TaskStatus.FAILED
-
-    def _rate_rec_resources(self, task_data: dict) -> int:
-        """评估拓展评定歌曲 (recResources)，返回成功数量"""
-        recs = task_data.get("recResources", [])
-        if not recs:
-            return 0
-
-        task_id = task_data["id"]
-        success = 0
-        log.info("--- 拓展评定: %d 首 ---", len(recs))
-
-        for i, rec in enumerate(recs):
-            work = rec["work"]
-            if not rec.get("canInteract", True):
-                log.info("  [%d/%d] %s (%s) — 不可操作，跳过",
-                         i + 1, len(recs), work["name"], work["authorName"])
-                continue
-            if rec.get("finishTaskNum", 0) >= rec.get("totalTaskNum", 0):
-                log.info("  [%d/%d] %s (%s) — 已完成",
-                         i + 1, len(recs), work["name"], work["authorName"])
-                continue
-
-            result = self.rate_extra_work(task_id, work)
-            if result is TaskStatus.SUCCESS:
-                success += 1
-                log.info("  [%d/%d] %s (%s) — 评分成功",
-                         i + 1, len(recs), work["name"], work["authorName"])
-            else:
-                log.warning("  [%d/%d] %s (%s) — 评分失败（可能需要先在App内操作）",
-                           i + 1, len(recs), work["name"], work["authorName"])
-
-        return success
 
     # 每日积分上限 (基础 8 + 拓展 15 = 23)
     DAILY_CAP = 23
