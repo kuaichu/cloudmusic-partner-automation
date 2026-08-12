@@ -1,6 +1,6 @@
 # CloudMusic Partner Automation
 
-一个面向 Windows 的网易云音乐合伙人每日评分任务自动化工具。它支持多账号、Cookie 获取、随机操作间隔、Windows 计划任务，以及可选的本地 Web 控制台。
+一个面向 Windows 的网易云音乐合伙人每日评分任务自动化工具。它支持多账号、Cookie 获取、随机操作间隔和 Windows 计划任务。
 
 > [!IMPORTANT]
 > 本项目是非官方工具，与网易云音乐或其关联公司无关。接口和页面规则可能随时变化。请仅用于你自己的账号，并自行判断是否符合相关服务条款。Cookie 等同于登录凭据，请勿上传、分享或写入公开日志。
@@ -12,7 +12,6 @@
 - 从 Chrome、Edge、Brave 或 Chromium 提取 Cookie
 - 支持扫码登录和手动粘贴 Cookie
 - 通过 Windows 任务计划程序每日运行
-- 提供仅监听本机的可选 Web 控制台
 - 对日志中的 Cookie、CSRF Token 等敏感内容进行脱敏
 
 ## 环境要求
@@ -79,14 +78,6 @@ python music_partner.py --config D:\secure\copartner_ck.json
 .\setup_task.ps1 -Uninstall
 ```
 
-## 本地 Web 控制台
-
-```powershell
-python web_app.py
-```
-
-然后访问 <http://127.0.0.1:8765>。控制台默认只监听本机。除非你理解网络暴露风险并配置了防火墙与允许的 Host，否则不要启用远程监听，更不要将控制台直接暴露到公网。
-
 ## 配置格式
 
 `MUSIC_COPARTNER` 数组中的每一项代表一个账号：
@@ -123,7 +114,6 @@ python -m unittest discover -s tests -v
 music_partner.py             主程序
 get_cookie.py                Cookie 获取工具
 netease_utils.py             加密与日志脱敏公共模块
-web_app.py                   可选的本地控制台
 setup_task.ps1               Windows 计划任务安装脚本
 copartner_ck.json.example    配置示例
 tests/                       离线回归测试
@@ -147,7 +137,6 @@ research/                    协议分析和历史逆向资料
 
 - 不要提交 `copartner_ck.json`、日志、HAR 抓包或二维码图片。
 - 不要把 Cookie 发送给他人；泄漏后应立即退出相关登录会话并重新登录。
-- Web 控制台仅适合可信的本机环境。
 - 提交 Issue 时请删除账号、Cookie、CSRF Token、用户 ID 和本地绝对路径。
 
 ## 许可证
